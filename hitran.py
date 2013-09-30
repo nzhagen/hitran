@@ -3,6 +3,7 @@ from numpy import *
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import os
+import glob
 
 ## ======================================================
 def lorentzian_profile(kappa, S, gamma, kappa0):
@@ -44,7 +45,14 @@ def read_hitran2012_parfile(filename):
         The dictionary of HITRAN data for the molecule.
     '''
 
-    filehandle = open(filename, 'r')
+    if filename.endswith('.zip'):
+        import zipfile
+        zip = zipfile.ZipFile(filename, 'r')
+        (object_name, ext) = os.path.splitext(os.path.basename(filename))
+        print(object_name, ext)
+        filehandle = zip.read(object_name).splitlines()
+    else:
+        filehandle = open(filename, 'r')
 
     data = {'M':[],               ## molecule identification number
             'I':[],               ## isotope number
@@ -69,7 +77,7 @@ def read_hitran2012_parfile(filename):
     print('Reading "' + filename + '" ...')
 
     for line in filehandle:
-        if (len(line) < 161):
+        if (len(line) < 160):
             raise ImportError, 'The imported file ("' + filename + '") does not appear to be a HITRAN2012-format data file.'
 
         data['M'].append(uint(line[0:2]))
@@ -92,7 +100,11 @@ def read_hitran2012_parfile(filename):
         data['gp'].append(line[146:153])
         data['gpp'].append(line[153:160])
 
-    filehandle.close()
+    if filename.endswith('.zip'):
+        zip.close()
+    else:
+        filehandle.close()
+
     for key in data:
         data[key] = array(data[key])
 
@@ -149,7 +161,7 @@ def get_molecule_identifier(molecule_name):
     return(int(trans[molecule_name]))
 
 ## ======================================================
-def calculate_hitran_xsec(data, wavemin, wavemax):
+def calculate_hitran_xsec(data, wavemin, wavemax, units='m^2.ppm'):
     '''
     Given the HITRAN data (line centers and line strengths) for a molecule, digitize the result into a spectrum of
     absorption cross-section in units of cm^2.
@@ -162,6 +174,9 @@ def calculate_hitran_xsec(data, wavemin, wavemax):
         The minimum wavelength os the spectral region of interest.
     wavemax : float
         The maximum wavelength os the spectral region of interest.
+    units : str, optional
+        A string describing in what units of the output cross-section should be given in. Choices available are:
+        {'cm^2/mole', 'cm^2.ppm', 'm^2/mole', 'm^2.ppm').
 
     Returns
     -------
@@ -203,6 +218,16 @@ def calculate_hitran_xsec(data, wavemin, wavemax):
         ## Note: the quantity sum(L * dk) should sum to "S"!
         L = lorentzian_profile(wavenumbers, linestrength, linewidth, linecenter)
         xsec += L
+
+    if units.endswith('/mole'):
+        xsec = xsec * 6.022E23
+    elif units.endswith('.ppm'):
+        xsec = xsec * 2.686E19
+
+    if units.startswith('cm^2'):
+        pass
+    elif units.startswith('m^2'):
+        xsec = xsec / 10000.0
 
     return(waves, xsec)
 
@@ -338,7 +363,8 @@ if (__name__ == "__main__"):
     #molecule = 'NH3'
     #molecule = 'SO2'
     #molecule = 'CH4'
-    molecule = 'H2S'
+    #molecule = 'H2S'
+    molecule = 'O3'
 
     #units = 'm^2/mole'
     units = 'm^2.ppm'
@@ -349,7 +375,9 @@ if (__name__ == "__main__"):
     wavemax = 18.0
 
     M = get_molecule_identifier(molecule)
-    filename = './par/%02i_hit12.par' % M
+    filenames = glob.glob('./par/%02i_hit12.*' % M)
+    filename = filenames[0]
+
     filename = os.path.normpath(os.path.abspath(filename))
     data = read_hitran2012_parfile(filename)
 
@@ -357,18 +385,8 @@ if (__name__ == "__main__"):
     ## line centers and line strengths.
     nlines = len(data['S'])
     print('Found %i lines' % nlines)
-    print('Calculating the line data ...')
-    (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax)
-
-    if units.endswith('/mole'):
-        xsec = xsec * 6.022E23
-    elif units.endswith('.ppm'):
-        xsec = xsec * 2.686E19
-
-    if units.startswith('cm^2'):
-        pass
-    elif units.startswith('m^2'):
-        xsec = xsec / 10000.0
+    print('Calculating the absorption cross-section spectrum ...')
+    (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax, units)
 
     nchannels = int((wavemax - wavemin) / 0.2)
     downwaves = linspace(wavemin,wavemax,nchannels)
