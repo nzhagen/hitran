@@ -364,11 +364,11 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 ## ==================================================================================================
 
 if (__name__ == "__main__"):
-    molecule = 'H2O'       ## water
+    #molecule = 'H2O'       ## water
     #molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
     #molecule = 'SO2'       ## sulfur dioxide
-    #molecule = 'CH4'       ## methane
+    molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
     #molecule = 'C2H6'       ## ethane
@@ -378,8 +378,8 @@ if (__name__ == "__main__"):
     #units = 'cm^2/mole'
     #units = 'cm^2.ppm'
 
-    wavemin = 6.0
-    wavemax = 18.0
+    wavemin = 3.0
+    wavemax = 20.0
 
     M = get_molecule_identifier(molecule)
     filenames = glob.glob('./par/%02i_hit12.*' % M)
@@ -401,8 +401,10 @@ if (__name__ == "__main__"):
     #raise
     (downsampled_channel_boundaries, downspectrum) = downsample_spectrum(waves, xsec, downwaves)
 
-    plt.figure()
-    plt.plot(waves, xsec)
+    fig = plt.figure()
+    fig.canvas.set_window_title(molecule)
+    #plt.plot(waves, xsec)
+    plt.semilogy(waves, xsec)
     draw_block_spectrum(downsampled_channel_boundaries, downspectrum, linewidth=3.0, newfigure=False)
     plt.title(molecule)
     plt.ylabel('Cross-section (' + units + ')')
