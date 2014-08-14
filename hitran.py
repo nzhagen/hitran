@@ -5,6 +5,9 @@ import matplotlib.cm as cm
 import os
 import glob
 
+__all__ = ['lorentzian_profile', 'read_hitran2012_parfile', 'translate_molecule_identifier',
+           'get_molecule_identifier', 'calculate_hitran_xsec', 'downsample_spectrum', 'draw_block_spectrum']
+
 ## ======================================================
 def lorentzian_profile(kappa, S, gamma, kappa0):
     '''
@@ -82,14 +85,14 @@ def read_hitran2012_parfile(filename):
 
         data['M'].append(uint(line[0:2]))
         data['I'].append(uint(line[2]))
-        data['linecenter'].append(float32(line[3:15]))
-        data['S'].append(float32(line[15:25]))
-        data['Acoeff'].append(float32(line[25:35]))
-        data['gamma-air'].append(float32(line[35:40]))
-        data['gamma-self'].append(float32(line[40:45]))
-        data['Epp'].append(float32(line[45:55]))
-        data['N'].append(float32(line[55:59]))
-        data['delta'].append(float32(line[59:67]))
+        data['linecenter'].append(float64(line[3:15]))
+        data['S'].append(float64(line[15:25]))
+        data['Acoeff'].append(float64(line[25:35]))
+        data['gamma-air'].append(float64(line[35:40]))
+        data['gamma-self'].append(float64(line[40:45]))
+        data['Epp'].append(float64(line[45:55]))
+        data['N'].append(float64(line[55:59]))
+        data['delta'].append(float64(line[59:67]))
         data['Vp'].append(line[67:82])
         data['Vpp'].append(line[82:97])
         data['Qp'].append(line[97:112])
@@ -134,7 +137,7 @@ def translate_molecule_identifier(M):
              '41':'CH3CN', '42':'CF4',  '43':'C4H2',   '44':'HC3N', '45':'H2',   '46':'CS',   '47':'SO3'}
     return(trans[str(M)])
 
-## ================================================data['linecenter']======
+## ======================================================
 def get_molecule_identifier(molecule_name):
     '''
     For a given input molecular formula, return the corresponding HITRAN molecule identifier number.
@@ -161,7 +164,7 @@ def get_molecule_identifier(molecule_name):
     return(int(trans[molecule_name]))
 
 ## ======================================================
-def calculate_hitran_xsec(data, wavemin=None, wavemax=None, units='m^2.ppm'):
+def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m^2'):
     '''
     Given the HITRAN data (line centers and line strengths) for a molecule, digitize the result into a spectrum of
     absorption cross-section in units of cm^2.
@@ -176,7 +179,7 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, units='m^2.ppm'):
         The maximum wavelength os the spectral region of interest.
     units : str, optional
         A string describing in what units of the output cross-section should be given in. Choices available are:
-        {'cm^2/mole', 'cm^2.ppm', 'm^2/mole', 'm^2.ppm').
+        {'cm^2/mole', 'cm^2.ppm', 'm^2/mole', 'm^2.ppm', 'm^2', cm^2}.
 
     Returns
     -------
@@ -200,8 +203,8 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, units='m^2.ppm'):
     linewidths = array(data['gamma-air'][okay])
     nlines = alen(linecenters)
 
-    ## Convert the wavelengths (um) to wavenumbers (cm^{-1}).
-    npts = 20001
+    ## Convert the wavelengths (um) to wavenumbers (cm^{-1}). Create a spectrum linearly sampled in wavenumber (and
+    ## thus nonuniformly sampled in wavelength).
     wavenumbers = linspace(10000.0/wavemax, 10000.0/wavemin, npts)
     waves = 10000.0 / wavenumbers
     xsec = zeros_like(wavenumbers)
@@ -261,7 +264,7 @@ def downsample_spectrum(waves, spectrum, downsampled_waves=None, downsampled_cha
     ## From the list of channel boundary wavelengths, generate the channel basis functions.
     for n in arange(nchannels):
         okay = (waves > downsampled_channel_boundaries[n]) * (waves <= downsampled_channel_boundaries[n+1])
-        downspectrum[n] = mean(spectrum[okay])
+        downspectrum[n] = nanmean(spectrum[okay])
 
     return(downsampled_channel_boundaries, downspectrum)
 
@@ -306,7 +309,8 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
     y.append(0.0)
 
     if newfigure:
-        plt.figure()
+        fig = plt.figure()
+        if (title != None): fig.canvas.set_window_title(title)
         xmin = amin(x)
         xmax = amax(x)
         xptp = xmax - xmin
@@ -320,37 +324,37 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
         ymean = 0.5 * (ymin + ymax)
         ylo = ymean - 0.55 * yptp
         yhi = ymean + 0.55 * yptp
-#    else:
-#        ## First grab the existing plot limits. If these were previously determined by draw_block_spectrum(),
-#        ## then we need only rescale the plot range by (0.5/0.55) to get to the original data limits.
-#        ## Appending these to the current data vector, we can update the plot limits using both old and new
-#        ## data. First grab the existing limits.
-#        (x0,x1,y0,y1) = plt.axis()
-#
-#        x0mean = 0.5 * (x0 + x1)
-#        x0ptp = (0.5 / 0.55) * (x1 - x0)
-#        x0min = x0mean - 0.5 * x0ptp
-#        x0max = x0mean + 0.5 * x0ptp
-#
-#        y0mean = 0.5 * (y0 + y1)
-#        y0ptp = (0.5 / 0.55) * (y1 - y0)
-#        y0min = y0mean - 0.5 * y0ptp
-#        y0max = y0mean + 0.5 * y0ptp
-#
-#        ## Next determine the new plot range using the old and new data limits.
-#        xmin = amin(append(array(x), x0min))
-#        xmax = amax(append(array(x), x0max))
-#        xptp = xmax - xmin
-#        xmean = 0.5 * (xmin + xmax)
-#        xlo = xmean - 0.55 * xptp
-#        xhi = xmean + 0.55 * xptp
-#
-#        ymin = amin(append(array(y), y0min))
-#        ymax = amax(append(array(y), y0max))
-#        yptp = ymax - ymin
-#        ymean = 0.5 * (ymin + ymax)
-#        ylo = ymean - 0.55 * yptp
-#        yhi = ymean + 0.55 * yptp
+    else:
+        ## First grab the existing plot limits. If these were previously determined by draw_block_spectrum(),
+        ## then we need only rescale the plot range by (0.5/0.55) to get to the original data limits.
+        ## Appending these to the current data vector, we can update the plot limits using both old and new
+        ## data. First grab the existing limits.
+        (x0,x1,y0,y1) = plt.axis()
+
+        x0mean = 0.5 * (x0 + x1)
+        x0ptp = (0.5 / 0.55) * (x1 - x0)
+        x0min = x0mean - 0.5 * x0ptp
+        x0max = x0mean + 0.5 * x0ptp
+
+        y0mean = 0.5 * (y0 + y1)
+        y0ptp = (0.5 / 0.55) * (y1 - y0)
+        y0min = y0mean - 0.5 * y0ptp
+        y0max = y0mean + 0.5 * y0ptp
+
+        ## Next determine the new plot range using the old and new data limits.
+        xmin = amin(append(array(x), x0min))
+        xmax = amax(append(array(x), x0max))
+        xptp = xmax - xmin
+        xmean = 0.5 * (xmin + xmax)
+        xlo = xmean - 0.55 * xptp
+        xhi = xmean + 0.55 * xptp
+
+        ymin = amin(append(array(y), y0min))
+        ymax = amax(append(array(y), y0max))
+        yptp = ymax - ymin
+        ymean = 0.5 * (ymin + ymax)
+        ylo = ymean - 0.55 * yptp
+        yhi = ymean + 0.55 * yptp
 
     plt.plot(x, y, **kwargs)
     if (title != None): plt.title(title)
@@ -364,22 +368,28 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 ## ==================================================================================================
 
 if (__name__ == "__main__"):
-    #molecule = 'H2O'       ## water
+    molecule = 'H2O'       ## water
     #molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
     #molecule = 'SO2'       ## sulfur dioxide
-    molecule = 'CH4'       ## methane
+    #molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
-    #molecule = 'C2H6'       ## ethane
+    #molecule = 'C2H6'      ## ethane
 
     #units = 'm^2/mole'
-    units = 'm^2.ppm'
+    #units = 'm^2.ppm'
     #units = 'cm^2/mole'
     #units = 'cm^2.ppm'
+    units = 'm^2'
+    #units = 'cm^2'
 
-    wavemin = 3.0
-    wavemax = 20.0
+    wavemin = 1.0
+    wavemax = 14.0
+    #wavemin = 1.0
+    #wavemax = 1.7
+
+    show_downsampled_spectrum = (wavemax - wavemin) > 0.8
 
     M = get_molecule_identifier(molecule)
     filenames = glob.glob('./par/%02i_hit12.*' % M)
@@ -393,22 +403,21 @@ if (__name__ == "__main__"):
     nlines = len(data['S'])
     print('Found %i lines' % nlines)
     print('Calculating the absorption cross-section spectrum ...')
-    (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax, units)
-
-    nchannels = int((amax(waves) - amin(waves)) / 0.2)
-    downwaves = linspace(amin(waves),amin(waves),nchannels)
-    #print(wavemin, wavemax, amin(waves), amax(waves), nchannels, downwaves)
-    #raise
-    (downsampled_channel_boundaries, downspectrum) = downsample_spectrum(waves, xsec, downwaves)
+    (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax, units=units)
 
     fig = plt.figure()
     fig.canvas.set_window_title(molecule)
-    #plt.plot(waves, xsec)
-    plt.semilogy(waves, xsec)
-    draw_block_spectrum(downsampled_channel_boundaries, downspectrum, linewidth=3.0, newfigure=False)
+    plt.semilogy(waves, xsec, 'k-')
     plt.title(molecule)
     plt.ylabel('Cross-section (' + units + ')')
     plt.xlabel('wavelength (um)')
+
+    if show_downsampled_spectrum:
+        nchannels = int((amax(waves) - amin(waves)) / 0.2)
+        downwaves = linspace(amin(waves),amax(waves),nchannels)
+        (downsampled_channel_boundaries, downspectrum) = downsample_spectrum(waves, xsec, downwaves)
+        draw_block_spectrum(downsampled_channel_boundaries, downspectrum, linewidth=3.0, color='red',
+                            newfigure=False, zorder=0)
 
     xmin = amin(waves)
     xmax = amax(waves)
@@ -424,6 +433,6 @@ if (__name__ == "__main__"):
     ylo = ymean - 0.55 * yptp
     yhi = ymean + 0.55 * yptp
 
-    plt.axis([xlo,xhi,ylo,yhi])
+    plt.xlim([xlo,xhi])
 
     plt.show()
