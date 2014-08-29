@@ -164,7 +164,7 @@ def get_molecule_identifier(molecule_name):
     return(int(trans[molecule_name]))
 
 ## ======================================================
-def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m^2'):
+def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m^2', temp=296.0, pressure=1.0):
     '''
     Given the HITRAN data (line centers and line strengths) for a molecule, digitize the result into a spectrum of
     absorption cross-section in units of cm^2.
@@ -180,6 +180,10 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
     units : str, optional
         A string describing in what units of the output cross-section should be given in. Choices available are:
         {'cm^2/mole', 'cm^2.ppm', 'm^2/mole', 'm^2.ppm', 'm^2', cm^2}.
+    temp : float
+        The temperature of the gas, in Kelvin.
+    pressure : float
+        The pressure of the gas, in atmospheres.
 
     Returns
     -------
@@ -189,6 +193,7 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
         The mean absorption cross-section (in cm^2) per molecule, evaluated at the wavelengths given by input `waves`.
     '''
 
+    assert (temp > 70.0) and (temp < 3000.0), 'Gas temperature must be greater than 70K and less than 3000K.'
     if (wavemin == None):
         wavemin = amin(10000.0 / data['linecenter']) - 0.1
     if (wavemax == None):
@@ -201,7 +206,11 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
     linecenters = array(data['linecenter'][okay])       ## line centers in wavenumbers
     linestrengths = array(data['S'][okay])
     linewidths = array(data['gamma-air'][okay])
+    N_tempexps = array(data['N'][okay])
     nlines = alen(linecenters)
+    Q = 1.0     # this is a placeholder for the ratio of total partition sums
+    Epps = array(data['Epp'][okay])
+    deltas = array(data['delta'][okay])
 
     ## Convert the wavelengths (um) to wavenumbers (cm^{-1}). Create a spectrum linearly sampled in wavenumber (and
     ## thus nonuniformly sampled in wavelength).
@@ -216,12 +225,22 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
         linecenter = linecenters[i]
         linestrength = linestrengths[i]
         linewidth = linewidths[i]
+        N_tempexp = N_tempexps[i]
+        Epp = Epps[i]
+        delta = deltas[i]
 
         ## If the spectral line is well outside our region of interest, then ignore it.
         if (linecenter < amin(wavenumbers-0.5)):
             continue
         elif (linecenter > amax(wavenumbers+0.5)):
             continue
+
+        ## If using a different temperature and pressure than the HITRAN default (296K and 1atm), then scale the
+        ## linewidth by the temperature and pressure, adjust the linecenter due to pressure, and scale the
+        ## linestrength.
+        linecenter += delta * (pressure - 1.0) / pressure
+        linewidth *= (pressure / 1.0) * pow(296.0/temp, N_tempexp)
+        linestrength *= Q * exp(1.43877 * Epp * ((1.0/296.0) - (1.0/temp)))
 
         ## Note: the quantity sum(L * dk) should sum to "S"!
         L = lorentzian_profile(wavenumbers, linestrength, linewidth, linecenter)
@@ -376,6 +395,7 @@ if (__name__ == "__main__"):
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
     #molecule = 'C2H6'      ## ethane
+    #molecule = 'CO'        ## carbon monoxide
 
     #units = 'm^2/mole'
     #units = 'm^2.ppm'
@@ -388,6 +408,9 @@ if (__name__ == "__main__"):
     wavemax = 14.0
     #wavemin = 1.0
     #wavemax = 1.7
+
+    temp = 296.0            ## gas temperature in Kelvin
+    pressure = 1.0          ## pressure in atmospheres
 
     show_downsampled_spectrum = (wavemax - wavemin) > 0.8
 
@@ -403,11 +426,12 @@ if (__name__ == "__main__"):
     nlines = len(data['S'])
     print('Found %i lines' % nlines)
     print('Calculating the absorption cross-section spectrum ...')
-    (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax, units=units)
+    (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax, units=units, temp=temp, pressure=pressure)
 
     fig = plt.figure()
     fig.canvas.set_window_title(molecule)
     plt.semilogy(waves, xsec, 'k-')
+    #plt.plot(waves, xsec, 'b-')
     plt.title(molecule)
     plt.ylabel('Cross-section (' + units + ')')
     plt.xlabel('wavelength (um)')
