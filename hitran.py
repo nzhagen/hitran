@@ -206,11 +206,11 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
     linecenters = array(data['linecenter'][okay])       ## line centers in wavenumbers
     linestrengths = array(data['S'][okay])
     linewidths = array(data['gamma-air'][okay])
-    N_tempexps = array(data['N'][okay])
+    N_tempexps = array(data['N'][okay])     ## the temperature-dependent exponent for air-broadened linewidths
     nlines = alen(linecenters)
-    Q = 1.0     # this is a placeholder for the ratio of total partition sums
-    Epps = array(data['Epp'][okay])
-    deltas = array(data['delta'][okay])
+    Qratio = 1.0     # this is a placeholder for the ratio of total partition sums
+    Epps = array(data['Epp'][okay])         ## the lower-energy-level energy (in cm^{-1})
+    deltas = array(data['delta'][okay])     ## the "air pressure shift" (in cm^{-1} / atm)
 
     ## Convert the wavelengths (um) to wavenumbers (cm^{-1}). Create a spectrum linearly sampled in wavenumber (and
     ## thus nonuniformly sampled in wavelength).
@@ -240,7 +240,7 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
         ## linestrength.
         linecenter += delta * (pressure - 1.0) / pressure
         linewidth *= (pressure / 1.0) * pow(296.0/temp, N_tempexp)
-        linestrength *= Q * exp(1.43877 * Epp * ((1.0/296.0) - (1.0/temp)))
+        linestrength *= Qratio * exp(1.43877 * Epp * ((1.0/296.0) - (1.0/temp)))
 
         ## Note: the quantity sum(L * dk) should sum to "S"!
         L = lorentzian_profile(wavenumbers, linestrength, linewidth, linecenter)
@@ -387,10 +387,10 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 ## ==================================================================================================
 
 if (__name__ == "__main__"):
-    molecule = 'H2O'       ## water
+    #molecule = 'H2O'       ## water
     #molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
-    #molecule = 'SO2'       ## sulfur dioxide
+    molecule = 'SO2'       ## sulfur dioxide
     #molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
@@ -405,8 +405,8 @@ if (__name__ == "__main__"):
     #units = 'cm^2'
 
     wavemin = 1.0
-    wavemax = 14.0
-    #wavemin = 1.0
+    wavemax = 18.0
+    #wavemin = 1.4
     #wavemax = 1.7
 
     temp = 296.0            ## gas temperature in Kelvin
@@ -431,7 +431,7 @@ if (__name__ == "__main__"):
     fig = plt.figure()
     fig.canvas.set_window_title(molecule)
     plt.semilogy(waves, xsec, 'k-')
-    #plt.plot(waves, xsec, 'b-')
+    #plt.plot(waves, xsec, 'k-')
     plt.title(molecule)
     plt.ylabel('Cross-section (' + units + ')')
     plt.xlabel('wavelength (um)')
@@ -441,7 +441,7 @@ if (__name__ == "__main__"):
         downwaves = linspace(amin(waves),amax(waves),nchannels)
         (downsampled_channel_boundaries, downspectrum) = downsample_spectrum(waves, xsec, downwaves)
         draw_block_spectrum(downsampled_channel_boundaries, downspectrum, linewidth=3.0, color='red',
-                            newfigure=False, zorder=0)
+                            newfigure=False, alpha=0.6)
 
     xmin = amin(waves)
     xmax = amax(waves)
