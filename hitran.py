@@ -48,6 +48,9 @@ def read_hitran2012_parfile(filename):
         The dictionary of HITRAN data for the molecule.
     '''
 
+    if not os.path.exists:
+        raise ImportError('The input filename"' + filename + '" does not exist.')
+
     if filename.endswith('.zip'):
         import zipfile
         zip = zipfile.ZipFile(filename, 'r')
@@ -81,7 +84,7 @@ def read_hitran2012_parfile(filename):
 
     for line in filehandle:
         if (len(line) < 160):
-            raise ImportError, 'The imported file ("' + filename + '") does not appear to be a HITRAN2012-format data file.'
+            raise ImportError('The imported file ("' + filename + '") does not appear to be a HITRAN2012-format data file.')
 
         data['M'].append(uint(line[0:2]))
         data['I'].append(uint(line[2]))
@@ -206,6 +209,7 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
     linecenters = array(data['linecenter'][okay])       ## line centers in wavenumbers
     linestrengths = array(data['S'][okay])
     linewidths = array(data['gamma-air'][okay])
+    gammas_self = array(data['gamma-self'][okay])
     N_tempexps = array(data['N'][okay])     ## the temperature-dependent exponent for air-broadened linewidths
     nlines = alen(linecenters)
     Qratio = 1.0     # this is a placeholder for the ratio of total partition sums
@@ -390,8 +394,8 @@ if (__name__ == "__main__"):
     #molecule = 'H2O'       ## water
     #molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
-    molecule = 'SO2'       ## sulfur dioxide
-    #molecule = 'CH4'       ## methane
+    #molecule = 'SO2'       ## sulfur dioxide
+    molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
     #molecule = 'C2H6'      ## ethane
@@ -404,10 +408,10 @@ if (__name__ == "__main__"):
     units = 'm^2'
     #units = 'cm^2'
 
-    wavemin = 1.0
-    wavemax = 18.0
-    #wavemin = 1.4
-    #wavemax = 1.7
+    #wavemin = 1.0
+    #wavemax = 18.0
+    wavemin = 0.5
+    wavemax = 3.0
 
     temp = 296.0            ## gas temperature in Kelvin
     pressure = 1.0          ## pressure in atmospheres
