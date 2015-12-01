@@ -197,9 +197,9 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
     '''
 
     assert (temp > 70.0) and (temp < 3000.0), 'Gas temperature must be greater than 70K and less than 3000K.'
-    if (wavemin == None):
+    if (wavemin is None):
         wavemin = amin(10000.0 / data['linecenter']) - 0.1
-    if (wavemax == None):
+    if (wavemax is None):
         wavemax = amax(10000.0 / data['linecenter']) + 0.1
 
     ## First step: remove any data points that do not correspond to the primary isotope. (If we want to use isotopes,
@@ -271,10 +271,10 @@ def downsample_spectrum(waves, spectrum, downsampled_waves=None, downsampled_cha
     nwaves = alen(waves)
 
     ## If it is not already defined, make the list of channel boundary wavelengths.
-    if (downsampled_waves != None) and (downsampled_channel_boundaries == None):
+    if (downsampled_waves is not None) and (downsampled_channel_boundaries is None):
         dw = downsampled_waves[1] - downsampled_waves[0]
         downsampled_channel_boundaries = append(amin(downsampled_waves)-(dw/2.0), downsampled_waves+(dw/2.0))
-    elif (downsampled_waves == None) and (downsampled_channel_boundaries == None):
+    elif (downsampled_waves is None) and (downsampled_channel_boundaries is None):
         raise ValueError, 'Either "downsampled_waves" or "downsampled_channel_boundaries" is required as an input.'
 
     ## Generate the channel basis functions used to represent the low-resolution spectral channels in terms
@@ -333,7 +333,7 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 
     if newfigure:
         fig = plt.figure()
-        if (title != None): fig.canvas.set_window_title(title)
+        if (title is not None): fig.canvas.set_window_title(title)
         xmin = amin(x)
         xmax = amax(x)
         xptp = xmax - xmin
@@ -380,7 +380,7 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
         yhi = ymean + 0.55 * yptp
 
     plt.plot(x, y, **kwargs)
-    if (title != None): plt.title(title)
+    if (title is not None): plt.title(title)
     if newfigure:
         plt.axis([xlo,xhi,ylo,yhi])
 
@@ -408,10 +408,10 @@ if (__name__ == "__main__"):
     units = 'm^2'
     #units = 'cm^2'
 
-    #wavemin = 1.0
-    #wavemax = 18.0
-    wavemin = 0.5
-    wavemax = 3.0
+    wavemin = 2.0
+    wavemax = 20.0
+    #wavemin = 0.5
+    #wavemax = 3.0
 
     temp = 296.0            ## gas temperature in Kelvin
     pressure = 1.0          ## pressure in atmospheres
