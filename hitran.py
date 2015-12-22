@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+
 from __future__ import print_function, division
 from numpy import *
 import matplotlib.pyplot as plt
@@ -5,7 +7,10 @@ import matplotlib.cm as cm
 import os
 import glob
 
-__all__ = ['lorentzian_profile', 'read_hitran2012_parfile', 'translate_molecule_identifier',
+__authors__ = 'Nathan Hagen'
+__license__ = 'MIT/X11 License'
+__contact__ = 'Nathan Hagen <and.the.light.shattered@gmail.com>'
+__all__     = ['lorentzian_profile', 'read_hitran2012_parfile', 'translate_molecule_identifier',
            'get_molecule_identifier', 'calculate_hitran_xsec', 'downsample_spectrum', 'draw_block_spectrum']
 
 ## ======================================================
