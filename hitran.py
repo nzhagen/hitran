@@ -14,7 +14,7 @@ __all__     = ['lorentzian_profile', 'read_hitran2012_parfile', 'translate_molec
            'get_molecule_identifier', 'calculate_hitran_xsec', 'downsample_spectrum', 'draw_block_spectrum']
 
 ## ======================================================
-def lorentzian_profile(kappa, S, gamma, kappa0):
+def lorentzian_profile(kappa, S, gamma, kappa0, truncate=True):
     '''
     Calculate a Lorentzian absorption profile.
 
@@ -35,6 +35,8 @@ def lorentzian_profile(kappa, S, gamma, kappa0):
         The sampled absorption profile.
     '''
     L = (S / pi) * gamma / ((kappa - kappa0)**2 + gamma**2)
+    if truncate:
+        L[abs(kappa - kappa0) > 100.0*gamma] = 0.0
     return(L)
 
 ## ======================================================
@@ -280,7 +282,7 @@ def downsample_spectrum(waves, spectrum, downsampled_waves=None, downsampled_cha
         dw = downsampled_waves[1] - downsampled_waves[0]
         downsampled_channel_boundaries = append(amin(downsampled_waves)-(dw/2.0), downsampled_waves+(dw/2.0))
     elif (downsampled_waves is None) and (downsampled_channel_boundaries is None):
-        raise ValueError, 'Either "downsampled_waves" or "downsampled_channel_boundaries" is required as an input.'
+        raise ValueError('Either "downsampled_waves" or "downsampled_channel_boundaries" is required as an input.')
 
     ## Generate the channel basis functions used to represent the low-resolution spectral channels in terms
     ## of the high-resolution data.
@@ -399,8 +401,8 @@ if (__name__ == "__main__"):
     #molecule = 'H2O'       ## water
     #molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
-    #molecule = 'SO2'       ## sulfur dioxide
-    molecule = 'CH4'       ## methane
+    molecule = 'SO2'       ## sulfur dioxide
+    #molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
     #molecule = 'C2H6'      ## ethane
