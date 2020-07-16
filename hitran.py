@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import os
 import glob
+import pdb
 
 __authors__ = 'Nathan Hagen'
 __license__ = 'MIT/X11 License'
@@ -62,7 +63,7 @@ def read_hitran2012_parfile(filename):
         import zipfile
         zip = zipfile.ZipFile(filename, 'r')
         (object_name, ext) = os.path.splitext(os.path.basename(filename))
-        print(object_name, ext)
+        #print(object_name, ext)
         filehandle = zip.read(object_name).splitlines()
     else:
         filehandle = open(filename, 'r')
@@ -211,8 +212,12 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
 
     ## First step: remove any data points that do not correspond to the primary isotope. (If we want to use isotopes,
     ## then we need to figure out mixing ratios.) For most HITRAN gases, the primary isotope is about 99% of the total
-    ## atmospheric composition.
-    okay = (data['I'] == 1)
+    ## atmospheric composition. First, we find the primary isotope in the list and then we pick out the data for just
+    ## that one.
+    (unique_isotopes, counts) = unique(data['I'], return_counts=True)
+    isotope_number = (unique_isotopes[counts == amax(counts)])
+    okay = (data['I'] == isotope_number)
+
     linecenters = array(data['linecenter'][okay])       ## line centers in wavenumbers
     linestrengths = array(data['S'][okay])
     linewidths = array(data['gamma-air'][okay])
@@ -399,9 +404,9 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 
 if (__name__ == "__main__"):
     #molecule = 'H2O'       ## water
-    #molecule = 'CO2'       ## carbon dioxide
+    molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
-    molecule = 'SO2'       ## sulfur dioxide
+    #molecule = 'SO2'       ## sulfur dioxide
     #molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
