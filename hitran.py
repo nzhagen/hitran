@@ -223,7 +223,7 @@ def calculate_hitran_xsec(data, wavemin=None, wavemax=None, npts=20001, units='m
     linewidths = array(data['gamma-air'][okay])
     gammas_self = array(data['gamma-self'][okay])
     N_tempexps = array(data['N'][okay])     ## the temperature-dependent exponent for air-broadened linewidths
-    nlines = alen(linecenters)
+    nlines = len(linecenters)
     Qratio = 1.0     # this is a placeholder for the ratio of total partition sums
     Epps = array(data['Epp'][okay])         ## the lower-energy-level energy (in cm^{-1})
     deltas = array(data['delta'][okay])     ## the "air pressure shift" (in cm^{-1} / atm)
@@ -280,7 +280,7 @@ def downsample_spectrum(waves, spectrum, downsampled_waves=None, downsampled_cha
     (Right now, we assume uniformly sampled wavelengths/wavenumbers.)
     '''
 
-    nwaves = alen(waves)
+    nwaves = len(waves)
 
     ## If it is not already defined, make the list of channel boundary wavelengths.
     if (downsampled_waves is not None) and (downsampled_channel_boundaries is None):
@@ -291,7 +291,7 @@ def downsample_spectrum(waves, spectrum, downsampled_waves=None, downsampled_cha
 
     ## Generate the channel basis functions used to represent the low-resolution spectral channels in terms
     ## of the high-resolution data.
-    nchannels = alen(downsampled_channel_boundaries) - 1
+    nchannels = len(downsampled_channel_boundaries) - 1
     #print('downwaves=', downwaves)
     #print('downsampled_channel_boundaries=', downsampled_channel_boundaries)
     downspectrum = zeros(nchannels)
@@ -324,10 +324,10 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 
     channel_boundaries = asarray(channel_boundaries)
     spectrum = asarray(spectrum)
-    assert (alen(channel_boundaries) == 1 + alen(spectrum)), 'Input "channel_boundaries" must have length 1 more than input "spectrum".'
+    assert (len(channel_boundaries) == 1 + len(spectrum)), 'Input "channel_boundaries" must have length 1 more than input "spectrum".'
 
     cb = channel_boundaries
-    nchannels = alen(cb) - 1
+    nchannels = len(cb) - 1
 
     x = []
     y = []
@@ -446,13 +446,13 @@ if (__name__ == "__main__"):
 
     fig = plt.figure()
     fig.canvas.set_window_title(molecule)
-    plt.semilogy(waves, xsec, 'k-')
-    #plt.plot(waves, xsec, 'k-')
+    #plt.semilogy(waves, xsec, 'k-')
+    plt.plot(waves, xsec, 'k-')
     plt.title(molecule)
     plt.ylabel('Cross-section (' + units + ')')
     plt.xlabel('wavelength (um)')
 
-    if show_downsampled_spectrum:
+    if False: #show_downsampled_spectrum:
         nchannels = int((amax(waves) - amin(waves)) / 0.2)
         downwaves = linspace(amin(waves),amax(waves),nchannels)
         (downsampled_channel_boundaries, downspectrum) = downsample_spectrum(waves, xsec, downwaves)
