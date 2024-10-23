@@ -304,7 +304,7 @@ def downsample_spectrum(waves, spectrum, downsampled_waves=None, downsampled_cha
     return(downsampled_channel_boundaries, downspectrum)
 
 ## =================================================================================================
-def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None, **kwargs):
+def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None, draw_edges=True, **kwargs):
     '''
     Draw a plot where the spectral channels are nonuniform in width and shaped by histogram-like rectangles.
 
@@ -331,8 +331,10 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 
     x = []
     y = []
-    x.append(cb[0])
-    y.append(0.0)
+
+    if draw_edges:
+        x.append(cb[0])
+        y.append(0.0)
 
     for n in arange(nchannels):
         x.append(cb[n])
@@ -340,8 +342,9 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
         y.append(spectrum[n])
         y.append(spectrum[n])
 
-    x.append(cb[-1])
-    y.append(0.0)
+    if draw_edges:
+        x.append(cb[-1])
+        y.append(0.0)
 
     if newfigure:
         fig = plt.figure()
@@ -404,14 +407,16 @@ def draw_block_spectrum(channel_boundaries, spectrum, newfigure=True, title=None
 
 if (__name__ == "__main__"):
     #molecule = 'H2O'       ## water
-    molecule = 'CO2'       ## carbon dioxide
+    #molecule = 'CO2'       ## carbon dioxide
     #molecule = 'NH3'       ## ammonia
     #molecule = 'SO2'       ## sulfur dioxide
-    #molecule = 'CH4'       ## methane
+    molecule = 'CH4'       ## methane
     #molecule = 'H2S'       ## hydrogen sulfide
     #molecule = 'O3'        ## ozone
     #molecule = 'C2H6'      ## ethane
     #molecule = 'CO'        ## carbon monoxide
+    #molecule = 'O2'        ## oxygen
+    #molecule = 'H2'        ## oxygen
 
     #units = 'm^2/mole'
     #units = 'm^2.ppm'
@@ -424,6 +429,8 @@ if (__name__ == "__main__"):
     wavemax = 20.0
     #wavemin = 0.5
     #wavemax = 3.0
+    #wavemin = 0.4
+    #wavemax = 1.0
 
     temp = 296.0            ## gas temperature in Kelvin
     pressure = 1.0          ## pressure in atmospheres
@@ -444,16 +451,15 @@ if (__name__ == "__main__"):
     print('Calculating the absorption cross-section spectrum ...')
     (waves, xsec) = calculate_hitran_xsec(data, wavemin, wavemax, units=units, temp=temp, pressure=pressure)
 
-    fig = plt.figure()
-    fig.canvas.set_window_title(molecule)
-    #plt.semilogy(waves, xsec, 'k-')
-    plt.plot(waves, xsec, 'k-')
+    fig = plt.figure(molecule)
+    plt.semilogy(waves, xsec, 'k-')
+    #plt.plot(waves, xsec, 'k-')
     plt.title(molecule)
     plt.ylabel('Cross-section (' + units + ')')
     plt.xlabel('wavelength (um)')
 
-    if False: #show_downsampled_spectrum:
-        nchannels = int((amax(waves) - amin(waves)) / 0.2)
+    if show_downsampled_spectrum:
+        nchannels = int((amax(waves) - amin(waves)) / 0.1)
         downwaves = linspace(amin(waves),amax(waves),nchannels)
         (downsampled_channel_boundaries, downspectrum) = downsample_spectrum(waves, xsec, downwaves)
         draw_block_spectrum(downsampled_channel_boundaries, downspectrum, linewidth=3.0, color='red',
